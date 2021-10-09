@@ -58,11 +58,11 @@ void init_shell()
 "▒▒▒▒▒▒▒▒▒▒▄▄████████████████████████████████\n"
 "████████████████████████████████████████████\n"
     );
-    printf("\n\n\n\n******************"
+    printf("******************"
         "************************");
     printf("\n\n\n\t****MY SHELL****");
-    printf("\n\n\t-AXEL COVACICH SHELLS-");
-    printf("\n\n\n\n*******************"
+    printf("\n\n\t-AXEL COVACICH SHELL-");
+    printf("\n\n*******************"
         "***********************");
     char* username = getenv("USER");
 
@@ -146,8 +146,19 @@ int commandHandler(char **parsed){
         printf("\nExiting...\n");
         exit(0);
     case 2:
-        //chdir(parsed[1]);
-        printf("cuestionando cd");
+        if((strcmp(parsed[1],"-"))==0){
+            printf("\nUltimo directorio: %s ",getenv("OLDPWD"));
+            return 1;
+        }
+        if(chdir(parsed[1])!=0){
+            perror("Error al cambiar directorio");
+            return 1;
+        }
+        if(setenv("PWD",parsed[1],1)!=0){
+            perror("Error al setear PWD");
+            return 1;
+        }
+        
         return 1;
     case 3:
         if((strchr(parsed[1], '$') != NULL) ){
