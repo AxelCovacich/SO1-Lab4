@@ -26,3 +26,17 @@ void printDir()
     char *user = getenv("USER");
     printf("\n%s@%s:~%s",user,hostname,cwd);
 }
+
+// function for parsing command words
+void parseSpace(char* str, char** parsed,int LIMIT)
+{
+    int i;
+    for (i = 0; i < LIMIT; i++) {
+        parsed[i] = strsep(&str, " ");
+  
+        if (parsed[i] == NULL)
+            break;
+        if (strlen(parsed[i]) == 0)
+            i--;
+    }
+}
