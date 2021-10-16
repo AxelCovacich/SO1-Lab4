@@ -15,4 +15,6 @@ void init_shell();
 int takeInput(char* str);
 int commandHandler(char **parsed);
 int inputprocess(char* input, char** parsed);
+void execSys(char** pathargs,char** parsed,int nropaths);
+
 #endif

@@ -11,5 +11,6 @@
 FILE *abrirfile(char *nombre);
 void printDir();
 void parseSpace(char *input,char **parsed,int LIMIT);
+int getbinpaths(char** parsed,int LIMIT);
 
 #endif
