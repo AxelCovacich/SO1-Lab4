@@ -10,35 +10,49 @@
 #include<readline/history.h>
 
   
-int main()
+int main(int argc, char **argv)
 {
+    char *pathargs[MAXCMD];
     char inputString[MAXCHAR];
     char *args[MAXCMD];
-    char *pathargs[MAXCMD];
-    int nropaths = getbinpaths(pathargs,MAXCMD);
-    for(int i=0; i<nropaths; i++){
-        printf("Path i: %d - %s\n",i,pathargs[i]);
-    }
+    int bgflag;
+    int nropaths = separador(getenv("PATH"),pathargs,MAXCMD,":");
+    
     init_shell();
-    while(1){
-        printDir();
-        if(takeInput(inputString)){
-            continue;               //vacio
-        }
-        printf("Input: %s \n",inputString);
-        if(inputprocess(inputString,args)){
-            int n=0;
-            while(args[n]!=NULL){
-                printf("mainargsparaexec: %s \n",args[n]);
-                n++;
+    if(argc < 2){   //si llamo a myshell sin argumentos ./myshell, espero comandos por consola
+
+        while(1){
+            bgflag=0;
+            printDir();
+            if(takeInput(inputString)){
+                continue;               //entrada vacia, espero comandos devuelta(al hacer enter sin nada)
             }
-            printf("voy a exec \n");
-            execSys(pathargs,args,nropaths);
-            printf("Error, comando desconocido\n");
-            continue;
+            if(inputprocess(inputString,args,&bgflag)){         //devuelve 1 si no econtro comando interno
+                execSys(pathargs,args,nropaths,bgflag);   //
+                //printf("Error, comando desconocido");
+
+            }
         }
+        return 0;
     }
-    return 0;
+
+    else{
+        printf("Leyendo comandos\n");
+        FILE *fptr = abrirfile(argv[1]);
+        while(fgets(inputString,500,fptr)!= NULL){ 
+            bgflag=0;
+            printDir(); 
+            printf(":$ %s\n",inputString);
+            sleep(1);        
+            if(inputprocess(inputString,args,&bgflag)){
+                
+                execSys(pathargs,args,nropaths,bgflag);  //
+            }
+        }
+        fclose(fptr);
+        return 0;
+
+    }
 }
 
 

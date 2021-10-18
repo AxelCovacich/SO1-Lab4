@@ -28,32 +28,20 @@ void printDir()
 }
 
 // function for parsing command words
-void parseSpace(char* str, char** parsed,int LIMIT)
+int separador(char* str, char** parsed,int LIMIT,char *delimitador)
 {
     int i;
     for (i = 0; i < LIMIT; i++) {
 
-        parsed[i] = strsep(&str, " ");
-
+        parsed[i] = strsep(&str, delimitador);
+        
         if (parsed[i] == NULL)
             break;
         if (strlen(parsed[i]) == 0)
             i--;
+        parsed[i][strcspn(parsed[i], "\n")] = 0; 
+
     }
-    printf("i vale: %d\n",i);
-}
-
-int getbinpaths(char** parsed,int LIMIT){
-    int i;
-    char *binpath = getenv("PATH");
-    for (i = 0; i < LIMIT; i++) {
-
-        parsed[i] = strsep(&binpath, ":");
-
-        if (parsed[i] == NULL)
-            break;
-        if (strlen(parsed[i]) == 0)
-            i--;
-    }
+    //printf("i vale: %d\n",i);
     return i;
 }

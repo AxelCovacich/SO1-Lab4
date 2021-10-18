@@ -88,14 +88,18 @@ int takeInput(char* str)
     }
 }
 
-int inputprocess(char* input, char** parsed){
+int inputprocess(char* input, char** parsed,int *bgflag){
 
-    parseSpace(input, parsed,MAXCMD);
-    if(commandHandler(parsed)){
+    int nrocmd = separador(input, parsed,MAXCMD," ");
+    if(strcmp(parsed[nrocmd-1],"&")==0){
+                parsed[nrocmd-1]=NULL;
+                *bgflag = 1;            //si el ultimo comando del string es & activo la flag de background
+                }
+    if(commandHandler(parsed)){     //retorna 1 si se encontro el comando interno y se trato de ejecutar
         return 0;
     }
     else
-        return 1;
+        return 1;                   
 }
 
 int commandHandler(char **parsed){
@@ -110,9 +114,6 @@ int commandHandler(char **parsed){
     if((strcmp(Listadecomandos[1],parsed[0]) == 0)&& (parsed[1]==NULL)){       //salvando errores de crasheo cuando uso echo y cd sin argumentos
         parsed[1]="";
     }
-   /* if(parsed[1]==NULL){
-        parsed[1]="";
-    }*/
     
     for (i = 0; i < nrocommands; i++) {
         if (strcmp(Listadecomandos[i],parsed[0]) == 0) {
@@ -126,7 +127,19 @@ int commandHandler(char **parsed){
         exit(0);
     case 2:
         if((strcmp(parsed[1],"-"))==0){
-            printf("\nUltimo directorio: %s ",getenv("OLDPWD"));
+            if(chdir(getenv("OLDPWD"))!=0){
+                printf("no se pudo pa\n");
+                perror("Error al cambiar directorio");
+                return 1;
+            }
+            if(setenv("OLDPWD",getenv("PWD"),1)!=0){
+                perror("Error al setear OLDPWD");
+                return 1;
+            }
+            if(setenv("PWD",getcwd(NULL,0),1)!=0){
+                perror("Error al setear PWD");
+                return 1;
+            }
             return 1;
         }
         if((strcmp(parsed[1],""))==0){
@@ -181,30 +194,10 @@ int commandHandler(char **parsed){
     return 0;   //error, no se reconocio el comando
 }
 
-void execSys(char **pathargs,char** parsed,int nropaths)
+void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
 {
-    printf("entro a copiarparsed0: %s\n",parsed[0]);
-    char path[100];
-    char *args[MAXCMD]={'\0'};
-    
-
-    printf("nro de paths: %d\n",nropaths);
-    //strcpy(aux,parsed[0]); 
-    //printf("aux: %s \n",aux);
-    int n=0,flag=0;
-    printf("voy a parsear\n");
-
-    while(parsed[n+1]!=NULL){
-        args[n]=parsed[n+1];
-        n++;
-    }
-    int j=0;
-    while(args[j]!=NULL){
-        printf("argsj: %s ; \n",args[j]);
-        j++;
-    }
-    //args[i+1]=NULL;
-    printf("voy a forkear con n args0 y args 1: %d; %s ; %s\n",n,args[0],args[1]);
+    char path[100];    
+    int flag=0;
     // Forking a child
 
     pid_t pid = fork(); 
@@ -220,9 +213,8 @@ void execSys(char **pathargs,char** parsed,int nropaths)
             strcpy(path,getenv("PWD"));
             strcat(path,"/");
             strcat(path,parsed[0]);
-            printf("path tiene: %s\n",path);
             if (execv(path, parsed) < 0) {
-                perror("\nCould not execute command:");
+                perror("\nCould not execute command");
             }
         }
 
@@ -230,7 +222,7 @@ void execSys(char **pathargs,char** parsed,int nropaths)
             if(strchr(parsed[0],'/')!=NULL){
                 strcpy(path,parsed[0]);
                 if (execv(path, parsed) < 0) {
-                    perror("\nCould not execute command:");
+                    perror("\nCould not execute command");
                 }
             }
             else{
@@ -240,8 +232,9 @@ void execSys(char **pathargs,char** parsed,int nropaths)
                     strcat(path,parsed[0]);
                     flag=execv(path,parsed);
                 }
-                if(flag < 0)
-                perror("\nCould not execute command:");
+                if(flag < 0){
+                    perror("\nCould not execute commando");
+                }
             }
         }
     
@@ -249,7 +242,14 @@ void execSys(char **pathargs,char** parsed,int nropaths)
     }
     else {
         // waiting for child to terminate
-        wait(NULL); 
+        printf("flag :%d\n",bgflag);
+        if(!bgflag){
+            wait(NULL); 
+        }
+        else{
+            printf("\nProcess %d\n\n",pid);
+        }
+        sleep(1);
         return;
     }
 }

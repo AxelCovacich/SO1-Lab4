@@ -1,4 +1,4 @@
-cflags= -Wall -Werror -pedantic
+cflags= -Wall -Werror -pedantic -g
 
 myshell: main.o utils.o shell.o
 	gcc $(cflags) -o myshell main.o utils.o shell.o -lreadline
