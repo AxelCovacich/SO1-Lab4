@@ -5,12 +5,14 @@
 #include<stdlib.h>
 #include<unistd.h>
 #include<sys/types.h>
+#include<signal.h>
 #include<sys/wait.h>
 #include<readline/readline.h>
 #include<readline/history.h>
 
 
 const int MAX_SIZE = 256;
+//int *cpids = malloc(sizeof(int)); // to store  integer
 
 
 // Clearing the shell using escape sequences
@@ -75,7 +77,7 @@ void init_shell()
     //clear();
 }
 
-int takeInput(char* str)
+int takeInput(char* str)        //funcion para leer entrada por teclado con la funcion readline
 {
     char* buf;
   
@@ -122,13 +124,13 @@ int commandHandler(char **parsed){
         }
     }
     switch (switchOwnArg) {
-    case 1:
-        printf("\nExiting...\n");
+    case 1:                     //quit
+        printf("\n Waiting for childs...\n");
+        atexit(Zcleaner);
         exit(0);
-    case 2:
+    case 2:                     //cd
         if((strcmp(parsed[1],"-"))==0){
             if(chdir(getenv("OLDPWD"))!=0){
-                printf("no se pudo pa\n");
                 perror("Error al cambiar directorio");
                 return 1;
             }
@@ -171,7 +173,7 @@ int commandHandler(char **parsed){
         }
 
         return 1;
-    case 3:
+    case 3:         //echo
         while(parsed[n]!=NULL){
             if((strchr(parsed[n], '$') != NULL) ){
                 memmove(parsed[n], parsed[n]+1, strlen(parsed[n]));
@@ -226,14 +228,14 @@ void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
                 }
             }
             else{
-                for(int i=0; i<nropaths; i++){
+                for(int i=0; i<nropaths; i++){      //recorro los paths de $PATH para ejecutar el comando externo
                     strcpy(path,pathargs[i]);
                     strcat(path,"/");
                     strcat(path,parsed[0]);
                     flag=execv(path,parsed);
                 }
                 if(flag < 0){
-                    perror("\nCould not execute commando");
+                    perror("\nCould not execute command");
                 }
             }
         }
@@ -242,14 +244,31 @@ void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
     }
     else {
         // waiting for child to terminate
-        printf("flag :%d\n",bgflag);
         if(!bgflag){
-            wait(NULL); 
+            wait(NULL); //si no hay background, espero al hijo a que termine, estoy en fg
         }
         else{
-            printf("\nProcess %d\n\n",pid);
+            printf("\nProcess %d\n\n",pid); //imprimo pid del hijo ejecutandose en bg 
+            signal(SIGCHLD, handler);       //activo la signal para reportar la terminacion de ejecucion del hijo en bg
+            sleep(1);                       //sleep para tener la consola un poco mas ordenada por los print
+
         }
-        sleep(1);
         return;
     }
+}
+
+void handler(int sig)           //handler del padre cuando un hijo muere
+{
+    int status;
+    pid_t pid = wait(&status);
+    if (pid<0){ //Ya habia sido limpiado por un wait(no background), no hago nada
+        return;
+    }
+    printf("\nPid %d Done. Code: %d\n", pid,status);    //el hijo estaba en ejecucion y termino, imprimo su pid 
+}   
+
+void Zcleaner(){            //funcion para ejecutarse al finalizar el programa principal y esperar hijos en bg
+    wait(NULL);
+    printf("Exiting...");
+
 }

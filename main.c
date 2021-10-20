@@ -15,20 +15,23 @@ int main(int argc, char **argv)
     char *pathargs[MAXCMD];
     char inputString[MAXCHAR];
     char *args[MAXCMD];
+    char envpaths[200];
+    strcpy(envpaths,getenv("PATH"));    //guardo en envpaths los paths de la env PATH para poder trabajarla
+    int nropaths = separador(envpaths,pathargs,MAXCMD,":"); //guardo en pathargs los paths por separado de la env PATH
     int bgflag;
-    int nropaths = separador(getenv("PATH"),pathargs,MAXCMD,":");
+
     
     init_shell();
-    if(argc < 2){   //si llamo a myshell sin argumentos ./myshell, espero comandos por consola
+    if(argc < 2){   //si llamo a myshell sin argumentos ./myshell,se espera comandos por consola
 
         while(1){
-            bgflag=0;
+            bgflag=0;               //reinicio la flag de background
             printDir();
-            if(takeInput(inputString)){
+            if(takeInput(inputString)){         //guardare en inputString lo que ingrese por consola
                 continue;               //entrada vacia, espero comandos devuelta(al hacer enter sin nada)
             }
-            if(inputprocess(inputString,args,&bgflag)){         //devuelve 1 si no econtro comando interno
-                execSys(pathargs,args,nropaths,bgflag);   //
+            if(inputprocess(inputString,args,&bgflag)){         //Procesa y divide el input. Intenta ejecutar comandos internos. Modifica la bgflag en caso de que haya un & al final del comando Devuelve 1 si no econtro comando interno
+                execSys(pathargs,args,nropaths,bgflag);   //Trato de ejecutar comandos externos mediante execv
                 //printf("Error, comando desconocido");
 
             }
@@ -43,7 +46,7 @@ int main(int argc, char **argv)
             bgflag=0;
             printDir(); 
             printf(":$ %s\n",inputString);
-            sleep(1);        
+            sleep(1);                                       //sleep para poder ver en consola como se van ejecutando los comandos
             if(inputprocess(inputString,args,&bgflag)){
                 
                 execSys(pathargs,args,nropaths,bgflag);  //
@@ -54,6 +57,4 @@ int main(int argc, char **argv)
 
     }
 }
-
-
 

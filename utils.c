@@ -45,3 +45,5 @@ int separador(char* str, char** parsed,int LIMIT,char *delimitador)
     //printf("i vale: %d\n",i);
     return i;
 }
+
+
