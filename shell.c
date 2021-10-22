@@ -125,6 +125,8 @@ int commandHandler(char **parsed){
     switch (switchOwnArg) {
     case 1:                     //quit
         printf("\n Waiting for childs...\n");
+        Zcleaner();
+        printf("HASTA LA VISTA\n");
         exit(0);
     case 2:                     //cd
         if((strcmp(parsed[1],"-"))==0){
@@ -246,8 +248,8 @@ void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
             wait(NULL); //si no hay background, espero al hijo a que termine, estoy en fg
         }
         else{
-            printf("\nProcess %d\n\n",pid); //imprimo pid del hijo ejecutandose en bg 
             hijosbg++;
+            printf("\nProcess %d\n\n",pid); //imprimo pid del hijo ejecutandose en bg 
             signal(SIGCHLD, handler);       //activo la signal para reportar la terminacion de ejecucion del hijo en bg
             sleep(1);                       //sleep para tener la consola un poco mas ordenada por los print
 
@@ -267,7 +269,7 @@ void handler(int sig)           //handler cuando un hijo muere
     printf("\nPid %d Done. Code: %d\n", pid,status);    //el hijo estaba en ejecucion y termino, imprimo su pid 
 }   
 
-void Zcleaner(){    
+void Zcleaner(){  
                 //funcion para ejecutarse al finalizar el programa principal y esperar hijos en bg
     if (hijosbg>0){
         while(hijosbg>0){
@@ -275,5 +277,4 @@ void Zcleaner(){
             printf("Pid: %d finished.\n",pid);
         }
     }
-    printf("Exiting...");
 }
