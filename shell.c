@@ -12,8 +12,7 @@
 
 
 const int MAX_SIZE = 256;
-//int *cpids = malloc(sizeof(int)); // to store  integer
-
+int hijosbg=0;
 
 // Clearing the shell using escape sequences
 #define clear() printf("\033[3J\033c");
@@ -126,7 +125,6 @@ int commandHandler(char **parsed){
     switch (switchOwnArg) {
     case 1:                     //quit
         printf("\n Waiting for childs...\n");
-        atexit(Zcleaner);
         exit(0);
     case 2:                     //cd
         if((strcmp(parsed[1],"-"))==0){
@@ -249,6 +247,7 @@ void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
         }
         else{
             printf("\nProcess %d\n\n",pid); //imprimo pid del hijo ejecutandose en bg 
+            hijosbg++;
             signal(SIGCHLD, handler);       //activo la signal para reportar la terminacion de ejecucion del hijo en bg
             sleep(1);                       //sleep para tener la consola un poco mas ordenada por los print
 
@@ -257,8 +256,9 @@ void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
     }
 }
 
-void handler(int sig)           //handler del padre cuando un hijo muere
+void handler(int sig)           //handler cuando un hijo muere
 {
+    hijosbg--;
     int status;
     pid_t pid = wait(&status);
     if (pid<0){ //Ya habia sido limpiado por un wait(no background), no hago nada
@@ -267,8 +267,13 @@ void handler(int sig)           //handler del padre cuando un hijo muere
     printf("\nPid %d Done. Code: %d\n", pid,status);    //el hijo estaba en ejecucion y termino, imprimo su pid 
 }   
 
-void Zcleaner(){            //funcion para ejecutarse al finalizar el programa principal y esperar hijos en bg
-    wait(NULL);
+void Zcleaner(){    
+                //funcion para ejecutarse al finalizar el programa principal y esperar hijos en bg
+    if (hijosbg>0){
+        while(hijosbg>0){
+            pid_t pid = wait(NULL);
+            printf("Pid: %d finished.\n",pid);
+        }
+    }
     printf("Exiting...");
-
 }

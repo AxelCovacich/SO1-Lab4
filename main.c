@@ -19,8 +19,7 @@ int main(int argc, char **argv)
     strcpy(envpaths,getenv("PATH"));    //guardo en envpaths los paths de la env PATH para poder trabajarla
     int nropaths = separador(envpaths,pathargs,MAXCMD,":"); //guardo en pathargs los paths por separado de la env PATH
     int bgflag;
-
-    
+    atexit(Zcleaner);
     init_shell();
     if(argc < 2){   //si llamo a myshell sin argumentos ./myshell,se espera comandos por consola
 
@@ -32,8 +31,6 @@ int main(int argc, char **argv)
             }
             if(inputprocess(inputString,args,&bgflag)){         //Procesa y divide el input. Intenta ejecutar comandos internos. Modifica la bgflag en caso de que haya un & al final del comando Devuelve 1 si no econtro comando interno
                 execSys(pathargs,args,nropaths,bgflag);   //Trato de ejecutar comandos externos mediante execv
-                //printf("Error, comando desconocido");
-
             }
         }
         return 0;
