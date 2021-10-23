@@ -115,7 +115,7 @@ int commandHandler(char **parsed){
     if((strcmp(Listadecomandos[1],parsed[0]) == 0)&& (parsed[1]==NULL)){       //salvando errores de crasheo cuando uso echo y cd sin argumentos
         parsed[1]="";
     }
-    
+
     for (i = 0; i < nrocommands; i++) {
         if (strcmp(Listadecomandos[i],parsed[0]) == 0) {
             switchOwnArg = i + 1;
@@ -124,7 +124,7 @@ int commandHandler(char **parsed){
     }
     switch (switchOwnArg) {
     case 1:                     //quit
-        printf("\n Waiting for childs...\n");
+      //  printf("\n Waiting for childs...\n");
         Zcleaner();
         printf("HASTA LA VISTA\n");
         exit(0);
@@ -272,9 +272,9 @@ void handler(int sig)           //handler cuando un hijo muere
 void Zcleaner(){  
                 //funcion para ejecutarse al finalizar el programa principal y esperar hijos en bg
     if (hijosbg>0){
+        printf("Waiting for childs.\n");
         while(hijosbg>0){
-            pid_t pid = wait(NULL);
-            printf("Pid: %d finished.\n",pid);
+            //esperando a que terminen los hijos
         }
     }
 }
