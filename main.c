@@ -1,13 +1,14 @@
 #include "utils.h"
 #include "shell.h"
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<sys/types.h>
-#include<sys/wait.h>
-#include<readline/readline.h>
-#include<readline/history.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+#include <signal.h>
 
   
 int main(int argc, char **argv)
@@ -20,6 +21,11 @@ int main(int argc, char **argv)
     int nropaths = separador(envpaths,pathargs,MAXCMD,":"); //guardo en pathargs los paths por separado de la env PATH
     int bgflag;
     init_shell();
+
+    signal(SIGINT,SIG_IGN);
+    signal(SIGTSTP,SIG_IGN);
+    signal(SIGQUIT,SIG_IGN);
+
     if(argc < 2){   //si llamo a myshell sin argumentos ./myshell,se espera comandos por consola
 
         while(1){

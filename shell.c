@@ -195,7 +195,12 @@ int commandHandler(char **parsed){
   
     return 0;   //error, no se reconocio el comando
 }
+/*Okey, I'll try to adjust it to my program. I have in the function execSys the management of background and foreground executions. 
+if(!bgflag){
+            wait(NULL); //si no hay background, espero al hijo a que termine, estoy en fg
+        }
 
+Here I ask for the background flag, if there is no background execution, the father (remember I did a fork before executing, so the child executes the command and the father should return to the prompt) waits for the child to finish or else the father will return to the prompt and the child might be still running e.g., 'sleep 10'  and that would not fit  the foreground behaivor. So the foreground behaivor overall is ok. */
 void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
 {
     char path[100];    
@@ -209,6 +214,11 @@ void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
         return;
     }
      else if (pid == 0) {                       //soy el hijo
+
+        signal(SIGINT,SIG_DFL);
+        signal(SIGTSTP,SIG_DFL);
+        signal(SIGQUIT,SIG_DFL);
+
 
         if(strstr(parsed[0],"./")!=NULL){
             //relativo, tiene ./
@@ -245,14 +255,16 @@ void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
     else {
         // waiting for child to terminate
         if(!bgflag){
-            wait(NULL); //si no hay background, espero al hijo a que termine, estoy en fg
+            wait(NULL);
+            
+            //waitpid(pid,NULL,WNOHANG); //si no hay background, espero al hijo a que termine, estoy en fg
         }
         else{
             hijosbg++;
-            printf("\nProcess %d\n\n",pid); //imprimo pid del hijo ejecutandose en bg 
+            printf("\nProcess en bg %d\n\n",pid); //imprimo pid del hijo ejecutandose en bg 
             signal(SIGCHLD, handler);       //activo la signal para reportar la terminacion de ejecucion del hijo en bg
-            sleep(1);                       //sleep para tener la consola un poco mas ordenada por los print
-
+            //sleep(1);                       //sleep para tener la consola un poco mas ordenada por los print
+            printf("\n Soy padre, deberia irme al prompt");
         }
         return;
     }
