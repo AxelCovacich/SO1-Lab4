@@ -14,8 +14,9 @@
 void init_shell();
 int takeInput(char* str);
 int commandHandler(char **parsed);
-int inputprocess(char* input, char** parsed,int *flag);
+int inputprocess(char* input, char** parsed,char** parsedpipes,int *flag);
 void execSys(char** pathargs,char** parsed,int nropaths,int bgflag);
+void executePipedCommands(char** pathargs,char** pipedargs,int pipecommands,int bgflag);
 void handler(int sig);
 void Zcleaner();
 

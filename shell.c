@@ -89,18 +89,29 @@ int takeInput(char* str)        //funcion para leer entrada por teclado con la f
     }
 }
 
-int inputprocess(char* input, char** parsed,int *bgflag){
-
+int inputprocess(char* input, char** parsed,char** parsedpipes,int *bgflag){
+    int nropipes = separador(input,parsedpipes,MAXCMD,"|");
+    printf("Command pipeados %d\n",nropipes);
+    for (int j = 0; j < nropipes; j++) {
+        printf("Command pipeado %d: %s\n", j + 1, parsedpipes[j]);
+    }
     int nrocmd = separador(input, parsed,MAXCMD," ");
-    if(strcmp(parsed[nrocmd-1],"&")==0){
-                parsed[nrocmd-1]=NULL;
-                *bgflag = 1;            //si el ultimo comando del string es & activo la flag de background
-                }
+    if(nrocmd==0){
+        return 0;
+    }
+    if (strcmp(parsed[nrocmd-1], "&") == 0) {
+        parsed[nrocmd-1] = NULL;
+        *bgflag = 1;  // si el ultimo comando del string es & activo la flag de background
+    }
     if(commandHandler(parsed)){     //retorna 1 si se encontro el comando interno y se trato de ejecutar
         return 0;
     }
-    else
-        return 1;                   
+    else if(nropipes == 0){
+        return 1;
+    }
+        else{
+            return nropipes;
+        }                   
 }
 
 int commandHandler(char **parsed){
@@ -115,6 +126,11 @@ int commandHandler(char **parsed){
     if((strcmp(Listadecomandos[1],parsed[0]) == 0)&& (parsed[1]==NULL)){       //salvando errores de crasheo cuando uso echo y cd sin argumentos
         parsed[1]="";
     }
+       if (parsed[0] == NULL) {
+        // Empty command, do nothing
+        return 0;
+    }
+
 
     for (i = 0; i < nrocommands; i++) {
         if (strcmp(Listadecomandos[i],parsed[0]) == 0) {
@@ -195,12 +211,7 @@ int commandHandler(char **parsed){
   
     return 0;   //error, no se reconocio el comando
 }
-/*Okey, I'll try to adjust it to my program. I have in the function execSys the management of background and foreground executions. 
-if(!bgflag){
-            wait(NULL); //si no hay background, espero al hijo a que termine, estoy en fg
-        }
 
-Here I ask for the background flag, if there is no background execution, the father (remember I did a fork before executing, so the child executes the command and the father should return to the prompt) waits for the child to finish or else the father will return to the prompt and the child might be still running e.g., 'sleep 10'  and that would not fit  the foreground behaivor. So the foreground behaivor overall is ok. */
 void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
 {
     char path[100];    
@@ -267,6 +278,15 @@ void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
             printf("\n Soy padre, deberia irme al prompt");
         }
         return;
+    }
+}
+
+
+void executePipedCommands(char** pathargs,char** pipedargs,int nropipes,int bgflag) {
+    
+    printf("Command pipeados %d\n",nropipes);
+    for (int j = 0; j < nropipes; j++) {
+        printf("Command pipeado %d: %s\n", j + 1, pipedargs[j]);
     }
 }
 

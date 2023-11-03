@@ -28,22 +28,29 @@ void printDir()
 }
 
 // function for parsing command words
-int separador(char* str, char** parsed,int LIMIT,char *delimitador)
-{
+int separador(char* input, char** parsed, int LIMIT, char *delimitador) {
     int i;
+    //printf("separanding strlen:%ld \n", strlen(input));
     for (i = 0; i < LIMIT; i++) {
+        //printf("adentro del for\n");
+        parsed[i] = strsep(&input, delimitador);
+        //printf("despeues de strsep: %s \n", parsed[i]);
 
-        parsed[i] = strsep(&str, delimitador);
-        
-        if (parsed[i] == NULL)
+        if (parsed[i] == NULL) {
             break;
-        if (strlen(parsed[i]) == 0)
+        }
+        if (strlen(parsed[i]) == 0 || strcmp(parsed[i], " ") == 0) {
             i--;
-        parsed[i][strcspn(parsed[i], "\n")] = 0; 
-
+        }
+        else {
+            parsed[i][strcspn(parsed[i], "\n")] = 0;
+        }
+        //printf("fin del for\n");
     }
-    //printf("i vale: %d\n",i);
+    printf("i vale: %d\n", i);
+    if (parsed[1] == NULL && strcmp(delimitador, "|") == 0) {
+        return 0;
+    }
     return i;
 }
-
 
