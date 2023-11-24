@@ -9,6 +9,8 @@
 #include<sys/wait.h>
 #include<readline/readline.h>
 #include<readline/history.h>
+#include <ctype.h>
+
 
 
 const int MAX_SIZE = 256;
@@ -91,9 +93,12 @@ int takeInput(char* str)        //funcion para leer entrada por teclado con la f
 
 int inputprocess(char* input, char** parsed,char** parsedpipes,int *bgflag){
     int nropipes = separador(input,parsedpipes,MAXCMD,"|");
-    printf("Command pipeados %d\n",nropipes);
-    for (int j = 0; j < nropipes; j++) {
-        printf("Command pipeado %d: %s\n", j + 1, parsedpipes[j]);
+   // printf("Command pipeados %d\n",nropipes);
+    //for (int j = 0; j < nropipes; j++) {
+      //  printf("Command pipeado %d: %s\n", j + 1, parsedpipes[j]);
+  //  }
+    if(nropipes > 0){
+        return nropipes;
     }
     int nrocmd = separador(input, parsed,MAXCMD," ");
     if(nrocmd==0){
@@ -110,8 +115,8 @@ int inputprocess(char* input, char** parsed,char** parsedpipes,int *bgflag){
         return 1;
     }
         else{
-            return nropipes;
-        }                   
+            return 0;
+        }                  
 }
 
 int commandHandler(char **parsed){
@@ -284,10 +289,86 @@ void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
 
 void executePipedCommands(char** pathargs,char** pipedargs,int nropipes,int bgflag) {
     
-    printf("Command pipeados %d\n",nropipes);
-    for (int j = 0; j < nropipes; j++) {
-        printf("Command pipeado %d: %s\n", j + 1, pipedargs[j]);
+    char* commandaux[MAXCMD];   
+     /*
+        File descriptors para pipes.
+
+        pipefd[0] > lectura
+        pipefd[1] > escritura
+    */
+    
+    int pipefd[2]; 
+    pid_t p1,p2;
+
+    
+
+    if(pipe(pipefd) == -1){
+        printf("\nError al crear pipe"); 
+        return; 
     }
+
+    p1 = fork(); 
+    
+    if (p1 < 0) { 
+        printf("\nNo se pudo realizar fork"); 
+        return; 
+    }
+
+    if(p1 == 0){
+
+        signal(SIGINT,SIG_DFL);         //se ignoral las señales CTRL-C ,etc..
+        signal(SIGTSTP,SIG_DFL);
+        signal(SIGQUIT,SIG_DFL);
+
+        close(pipefd[0]);               //se cierra el read end
+        dup2(pipefd[1],STDOUT_FILENO);  //duplico el stdout
+        close(pipefd[1]);               //cierro el stdout en el fd
+
+        separador(pipedargs[0],commandaux,MAXCMD," ");
+       // printf("Soy el hijo1, strings pipedargs0: %s, commandaux0: %s, commandaux1: %s. Nro args: %d \n",pipedargs[0],commandaux[0],commandaux[1],numargs);
+        if (execvp(commandaux[0], commandaux) < 0) { 
+            printf("\nCould not execute command 1.."); 
+            exit(0); 
+        }
+    }
+    else { 
+        //Ejecucion del padre 
+        p2 = fork(); 
+  
+        if (p2 < 0) { 
+            printf("\nCould not fork"); 
+            return; 
+        } 
+  
+        // Hijo 2 
+        // Solo lee del read end 
+        if (p2 == 0) { 
+
+            signal(SIGINT,SIG_DFL);
+            signal(SIGTSTP,SIG_DFL);
+            signal(SIGQUIT,SIG_DFL);
+
+            close(pipefd[1]);               //cierro el output/stdout
+            dup2(pipefd[0], STDIN_FILENO);  //duplico el stdin
+            close(pipefd[0]);               //cierro el stdin fd 
+
+            separador(pipedargs[1],commandaux,MAXCMD," ");
+            //printf("Soy el hijo2, strings pipedargs1: %s, commandaux0: %s, commandaux1: %s. Nro args: %d \n",pipedargs[1],commandaux[0],commandaux[1],numargs);
+
+            if (execvp(commandaux[0], commandaux) < 0) { 
+                printf("\nCould not execute command 2.."); 
+                exit(0); 
+            } 
+        } else {  
+          
+                close(pipefd[0]); // Cierro read end
+                close(pipefd[1]); // Cierro write end
+
+                // espero por los dos hijos
+                waitpid(p1, NULL, 0);
+                waitpid(p2, NULL, 0);
+        } 
+    } 
 }
 
 void handler(int sig)           //handler cuando un hijo muere

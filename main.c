@@ -39,7 +39,7 @@ int main(int argc, char **argv)
                 execSys(pathargs,args,nropaths,bgflag);   //Trato de ejecutar comandos externos mediante execv
             }*/
             pipecommands = inputprocess(inputString,args,pipedargs,&bgflag);
-            printf("volvi de inputprocess");
+            //printf("volvi de inputprocess");
             if(pipecommands == 1){         //Procesa y divide el input. Intenta ejecutar comandos internos. Modifica la bgflag en caso de que haya un & al final del comando Devuelve 1 si no econtro comando interno
                 printf("voy a exec normal.\n");
                 execSys(pathargs,args,nropaths,bgflag);   //Trato de ejecutar comandos externos mediante execv

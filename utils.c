@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 
 FILE *abrirfile(char *nombre){
     FILE *fp; //creo puntero de tipo file
@@ -34,7 +35,7 @@ int separador(char* input, char** parsed, int LIMIT, char *delimitador) {
     for (i = 0; i < LIMIT; i++) {
         //printf("adentro del for\n");
         parsed[i] = strsep(&input, delimitador);
-        //printf("despeues de strsep: %s \n", parsed[i]);
+       // printf("despeues de strsep: %s \n", parsed[i]);
 
         if (parsed[i] == NULL) {
             break;
@@ -47,10 +48,9 @@ int separador(char* input, char** parsed, int LIMIT, char *delimitador) {
         }
         //printf("fin del for\n");
     }
-    printf("i vale: %d\n", i);
+    //printf("i vale: %d\n", i);
     if (parsed[1] == NULL && strcmp(delimitador, "|") == 0) {
         return 0;
     }
     return i;
 }
-
