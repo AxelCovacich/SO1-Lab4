@@ -9,7 +9,7 @@
 #include<sys/wait.h>
 #include<readline/readline.h>
 #include<readline/history.h>
-#include <ctype.h>
+#include<ctype.h>
 
 
 
@@ -91,12 +91,13 @@ int takeInput(char* str)        //funcion para leer entrada por teclado con la f
     }
 }
 
-int inputprocess(char* input, char** parsed,char** parsedpipes,int *bgflag){
+int inputprocess(char* input, char** parsed,char** parsedpipes,char** stdfilename){
+
+    char *aux = strdup(input);
+
     int nropipes = separador(input,parsedpipes,MAXCMD,"|");
    // printf("Command pipeados %d\n",nropipes);
-    //for (int j = 0; j < nropipes; j++) {
-      //  printf("Command pipeado %d: %s\n", j + 1, parsedpipes[j]);
-  //  }
+    
     if(nropipes > 0){
         return nropipes;
     }
@@ -104,13 +105,55 @@ int inputprocess(char* input, char** parsed,char** parsedpipes,int *bgflag){
     if(nrocmd==0){
         return 0;
     }
+    
     if (strcmp(parsed[nrocmd-1], "&") == 0) {
         parsed[nrocmd-1] = NULL;
-        *bgflag = 1;  // si el ultimo comando del string es & activo la flag de background
+        bgflag = 1;  // si el ultimo comando del string es & activo la flag de background
     }
-    if(commandHandler(parsed)){     //retorna 1 si se encontro el comando interno y se trato de ejecutar
+
+    for (int j = 0; j < nrocmd; j++) {
+        //printf("cmd %d: %s\n", j + 1, parsed[j]);
+        if(strcmp(parsed[j], "<") == 0){
+            printf("redirigir stdin\n");
+            stdinflag = 1;
+            stdfilename[0] = malloc(strlen(parsed[j+1]) + 1);
+            if ((stdfilename[0] != NULL) && (parsed[j+1] != NULL)) {
+                strcpy(stdfilename[0], parsed[j+1]);
+            }
+            printf("Stdfilename input: %s\n",stdfilename[0]);
+        }
+        if(strcmp(parsed[j], ">") == 0){
+            printf("redirigir stdout\n");
+            stdoutflag = 1;
+            stdfilename[1] = malloc(strlen(parsed[j+1]) + 1);
+            if ((stdfilename[1] != NULL) && (parsed[j+1] != NULL)) {
+                strcpy(stdfilename[1], parsed[j+1]);
+            }
+            printf("Stdfilename output: %s\n",stdfilename[1]);
+           // parsed[j] = " ";
+        }
+    }
+
+    if(stdinflag){
+        printf("input: %s",aux);
+        chop_to_char(aux, "<");
+        nrocmd = separador(aux, parsed,MAXCMD," ");
+    }
+
+    else if(stdoutflag){
+        printf("input: %s",aux);
+        chop_to_char(aux, ">");
+        nrocmd = separador(aux, parsed,MAXCMD," ");
+    }
+
+    for (int j = 0; j < nrocmd; j++) {
+       printf("final del inputprocess antes de exec-cmd %d: %s\n", j + 1, parsed[j]);
+    }
+
+    if(commandHandler(parsed,stdfilename)){     //retorna 1 si se encontro el comando interno y se trato de ejecutar
         return 0;
     }
+    
     else if(nropipes == 0){
         return 1;
     }
@@ -119,7 +162,7 @@ int inputprocess(char* input, char** parsed,char** parsedpipes,int *bgflag){
         }                  
 }
 
-int commandHandler(char **parsed){
+int commandHandler(char** parsed,char** stdfilename){
     int nrocommands = 4, i, switchOwnArg = 0,n=1;
     char* Listadecomandos[nrocommands];
   
@@ -127,6 +170,7 @@ int commandHandler(char **parsed){
     Listadecomandos[1] = "cd";
     Listadecomandos[2] = "echo";
     Listadecomandos[3] = "clr";
+
 
     if((strcmp(Listadecomandos[1],parsed[0]) == 0)&& (parsed[1]==NULL)){       //salvando errores de crasheo cuando uso echo y cd sin argumentos
         parsed[1]="";
@@ -143,6 +187,7 @@ int commandHandler(char **parsed){
             break;
         }
     }
+    printf("antes del switch\n");
     switch (switchOwnArg) {
     case 1:                     //quit
       //  printf("\n Waiting for childs...\n");
@@ -195,6 +240,13 @@ int commandHandler(char **parsed){
 
         return 1;
     case 3:         //echo
+        printf("dentro de case echo\n");
+        if(stdoutflag){
+            redirectSTDOUT(stdfilename[1]);
+        }
+        if(stdinflag){
+            redirectSTDIN(stdfilename[0]);
+        }
         while(parsed[n]!=NULL){
             if((strchr(parsed[n], '$') != NULL) ){
                 memmove(parsed[n], parsed[n]+1, strlen(parsed[n]));
@@ -217,7 +269,7 @@ int commandHandler(char **parsed){
     return 0;   //error, no se reconocio el comando
 }
 
-void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
+void execSys(char **pathargs,char** parsed,int nropaths,char** stdfilename)
 {
     char path[100];    
     int flag=0;
@@ -235,6 +287,12 @@ void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
         signal(SIGTSTP,SIG_DFL);
         signal(SIGQUIT,SIG_DFL);
 
+        if(stdinflag){
+            redirectSTDIN(stdfilename[0]);
+        }
+        if(stdoutflag){
+            redirectSTDOUT(stdfilename[1]);
+        }
 
         if(strstr(parsed[0],"./")!=NULL){
             //relativo, tiene ./
@@ -287,7 +345,7 @@ void execSys(char **pathargs,char** parsed,int nropaths,int bgflag)
 }
 
 
-void executePipedCommands(char** pathargs,char** pipedargs,int nropipes,int bgflag) {
+void executePipedCommands(char** pathargs,char** pipedargs,int nropipes,char** stdfilename) {
     
     char* commandaux[MAXCMD];   
      /*
