@@ -43,28 +43,16 @@ int main(int argc, char **argv)
             if(takeInput(inputString)){         //guardare en inputString lo que ingrese por consola
                 continue;               //entrada vacia, espero comandos devuelta(al hacer enter sin nada)
             }
-           /* if(inputprocess(inputString,args,pipedargs)){         //Procesa y divide el input. Intenta ejecutar comandos internos. Modifica la bgflag en caso de que haya un & al final del comando Devuelve 1 si no econtro comando interno
-                execSys(pathargs,args,nropaths,bgflag);   //Trato de ejecutar comandos externos mediante execv
-            }*/
+
+            //Procesa y divide el input. Intenta ejecutar comandos internos. Modifica las flags correspondientes.
+            //Devuelve 1 si no econtro comando interno
             pipecommands = inputprocess(inputString,args,pipedargs,stdfilename);
-           // printf("volvi de inputprocess");
-            if(pipecommands == 1){         //Procesa y divide el input. Intenta ejecutar comandos internos. Modifica la bgflag en caso de que haya un & al final del comando Devuelve 1 si no econtro comando interno
-                printf("voy a exec normal.\n");
+
+            if(pipecommands == 1){
                 execSys(pathargs,args,nropaths,stdfilename);   //Trato de ejecutar comandos externos mediante execv
             }
-            else if(pipecommands > 1){
-                //printf("voy a exec pipeados");
+            else if(pipecommands > 1){  //se ejecutaran comandos con pipe
                 executePipedCommands(pathargs,pipedargs, pipecommands,stdfilename);
-            }
-
-            if(stdinflag){
-                restaurarSTD(STDIN_FILENO);
-                free(stdfilename[0]);
-            }
-
-            if(stdoutflag){
-                restaurarSTD(STDOUT_FILENO);
-                free(stdfilename[1]);
             }
         }
         return 0;
@@ -85,9 +73,18 @@ int main(int argc, char **argv)
                 execSys(pathargs,args,nropaths,stdfilename);  //
             }
         }
+        if(stdinflag){
+            restaurarSTD(STDIN_FILENO);
+            free(stdfilename[0]);
+        }
+
+        if(stdoutflag){
+            restaurarSTD(STDOUT_FILENO);
+            free(stdfilename[1]);
+        }
+
         fclose(fptr);
         return 0;
-
     }
 }
 

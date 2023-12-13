@@ -91,12 +91,17 @@ int takeInput(char* str)        //funcion para leer entrada por teclado con la f
     }
 }
 
+
+/*input: user input; parsed: string donde se guardaran palabra a palabra; 
+parsedpipes: string para contener los comandos separados por pipes; 
+stdfilename: IO o OUT para redirection.
+Retorna 0 si no se encontraron comandos o se ejecutaron comandos internos. Retorna 1 si no hay pipes y
+se ejecutaran comandos externos via exec. Retorna mayor a 1 para trabajar con pipes*/
 int inputprocess(char* input, char** parsed,char** parsedpipes,char** stdfilename){
 
-    char *aux = strdup(input);
+    char *aux = strdup(input); //str auxiliar para guardar el user input
 
     int nropipes = separador(input,parsedpipes,MAXCMD,"|");
-   // printf("Command pipeados %d\n",nropipes);
     
     if(nropipes > 0){
         return nropipes;
@@ -106,50 +111,57 @@ int inputprocess(char* input, char** parsed,char** parsedpipes,char** stdfilenam
         return 0;
     }
     
-    if (strcmp(parsed[nrocmd-1], "&") == 0) {
-        parsed[nrocmd-1] = NULL;
-        bgflag = 1;  // si el ultimo comando del string es & activo la flag de background
-    }
+    for (int j = 0; j < nrocmd; j++) {      //recorro el string buscando los simbolos de redireccion .
 
-    for (int j = 0; j < nrocmd; j++) {
-        //printf("cmd %d: %s\n", j + 1, parsed[j]);
         if(strcmp(parsed[j], "<") == 0){
-            printf("redirigir stdin\n");
+            if(parsed[j+1]==NULL){
+                printf("Error de syntaxis alrededor de '<'\n");
+                return 0;
+            }
+            
             stdinflag = 1;
-            stdfilename[0] = malloc(strlen(parsed[j+1]) + 1);
+            stdfilename[0] = malloc(strlen(parsed[j+1]) + 1);           //guardo el nombre del file donde se redigira el input o el output segun corresponda
             if ((stdfilename[0] != NULL) && (parsed[j+1] != NULL)) {
                 strcpy(stdfilename[0], parsed[j+1]);
             }
-            printf("Stdfilename input: %s\n",stdfilename[0]);
         }
         if(strcmp(parsed[j], ">") == 0){
-            printf("redirigir stdout\n");
+
+            if(parsed[j+1]==NULL){
+                printf("Error de syntaxis alrededor de '>'\n");
+                return 0;
+            }
+
             stdoutflag = 1;
             stdfilename[1] = malloc(strlen(parsed[j+1]) + 1);
             if ((stdfilename[1] != NULL) && (parsed[j+1] != NULL)) {
                 strcpy(stdfilename[1], parsed[j+1]);
             }
-            printf("Stdfilename output: %s\n",stdfilename[1]);
-           // parsed[j] = " ";
+        }
+
+        if(strcmp(parsed[j], "&") == 0){
+            if(j==0){
+                printf("Error de syntaxis con '&'\n");
+                return 0;
+            }
+            parsed[j] = NULL;
+            bgflag = 1;  // si el ultimo comando del string es & activo la flag de background
         }
     }
 
     if(stdinflag){
-        printf("input: %s",aux);
+                    //reacomodo el string del user input para guardar los comandos hasta el simbol encontrado
         chop_to_char(aux, "<");
         nrocmd = separador(aux, parsed,MAXCMD," ");
     }
 
     else if(stdoutflag){
-        printf("input: %s",aux);
+    
         chop_to_char(aux, ">");
         nrocmd = separador(aux, parsed,MAXCMD," ");
     }
 
-    for (int j = 0; j < nrocmd; j++) {
-       printf("final del inputprocess antes de exec-cmd %d: %s\n", j + 1, parsed[j]);
-    }
-
+    //trato de ejecutar comandoso internos
     if(commandHandler(parsed,stdfilename)){     //retorna 1 si se encontro el comando interno y se trato de ejecutar
         return 0;
     }
@@ -162,6 +174,8 @@ int inputprocess(char* input, char** parsed,char** parsedpipes,char** stdfilenam
         }                  
 }
 
+//comandos internos de la shell: echo, cd, clear, quit. Retorna 0 si no se pudo ejecutar ningun comando.
+
 int commandHandler(char** parsed,char** stdfilename){
     int nrocommands = 4, i, switchOwnArg = 0,n=1;
     char* Listadecomandos[nrocommands];
@@ -171,23 +185,19 @@ int commandHandler(char** parsed,char** stdfilename){
     Listadecomandos[2] = "echo";
     Listadecomandos[3] = "clr";
 
-
-    if((strcmp(Listadecomandos[1],parsed[0]) == 0)&& (parsed[1]==NULL)){       //salvando errores de crasheo cuando uso echo y cd sin argumentos
-        parsed[1]="";
-    }
        if (parsed[0] == NULL) {
         // Empty command, do nothing
         return 0;
     }
 
-
-    for (i = 0; i < nrocommands; i++) {
+    //busco el comando en el string parseado
+    for (i = 0; i < nrocommands; i++) {                
         if (strcmp(Listadecomandos[i],parsed[0]) == 0) {
             switchOwnArg = i + 1;
             break;
         }
     }
-    printf("antes del switch\n");
+
     switch (switchOwnArg) {
     case 1:                     //quit
       //  printf("\n Waiting for childs...\n");
@@ -195,22 +205,8 @@ int commandHandler(char** parsed,char** stdfilename){
         printf("HASTA LA VISTA\n");
         exit(0);
     case 2:                     //cd
-        if((strcmp(parsed[1],"-"))==0){
-            if(chdir(getenv("OLDPWD"))!=0){
-                perror("Error al cambiar directorio");
-                return 1;
-            }
-            if(setenv("OLDPWD",getenv("PWD"),1)!=0){
-                perror("Error al setear OLDPWD");
-                return 1;
-            }
-            if(setenv("PWD",getcwd(NULL,0),1)!=0){
-                perror("Error al setear PWD");
-                return 1;
-            }
-            return 1;
-        }
-        if((strcmp(parsed[1],""))==0){
+
+        if((parsed[1]==NULL)){  //cd sin argumentoos
             if(chdir(getenv("HOME"))!=0){
                 perror("Error al cambiar directorio");
                 return 1;
@@ -220,6 +216,22 @@ int commandHandler(char** parsed,char** stdfilename){
                 return 1;
             }
             if(setenv("PWD",getenv("HOME"),1)!=0){
+                perror("Error al setear PWD");
+                return 1;
+            }
+            return 1;
+        }
+
+        if((strcmp(parsed[1],"-"))==0){     //cd -
+            if(chdir(getenv("OLDPWD"))!=0){
+                perror("Error al cambiar directorio");
+                return 1;
+            }
+            if(setenv("OLDPWD",getenv("PWD"),1)!=0){
+                perror("Error al setear OLDPWD");
+                return 1;
+            }
+            if(setenv("PWD",getcwd(NULL,0),1)!=0){
                 perror("Error al setear PWD");
                 return 1;
             }
@@ -240,8 +252,9 @@ int commandHandler(char** parsed,char** stdfilename){
 
         return 1;
     case 3:         //echo
-        printf("dentro de case echo\n");
-        if(stdoutflag){
+        
+        //pregunto por las flags de redireccion
+        if(stdoutflag){ 
             redirectSTDOUT(stdfilename[1]);
         }
         if(stdinflag){
@@ -258,6 +271,17 @@ int commandHandler(char** parsed,char** stdfilename){
             n++;
         }
         printf("\n");
+
+        if(stdinflag){
+            restaurarSTD(STDIN_FILENO);
+            free(stdfilename[0]);
+        }
+ 
+        if(stdoutflag){
+            restaurarSTD(STDOUT_FILENO);
+            free(stdfilename[1]);
+        }
+
         return 1;
     case 4:
         clear();
@@ -269,6 +293,11 @@ int commandHandler(char** parsed,char** stdfilename){
     return 0;   //error, no se reconocio el comando
 }
 
+/*Funcion para ejecutar comandos externos sin pipe.
+Pathargs:los path a recorrer para ejecutar los comandos.
+parsed: los comandos separados palabra por palabra
+nropaths: cantidad de paths.
+stdfilename: nombre de los file para redirigir el stdout o stdin*/
 void execSys(char **pathargs,char** parsed,int nropaths,char** stdfilename)
 {
     char path[100];    
@@ -283,6 +312,8 @@ void execSys(char **pathargs,char** parsed,int nropaths,char** stdfilename)
     }
      else if (pid == 0) {                       //soy el hijo
 
+
+        //señales que el hijo atendera
         signal(SIGINT,SIG_DFL);
         signal(SIGTSTP,SIG_DFL);
         signal(SIGQUIT,SIG_DFL);
@@ -330,15 +361,14 @@ void execSys(char **pathargs,char** parsed,int nropaths,char** stdfilename)
         // waiting for child to terminate
         if(!bgflag){
             wait(NULL);
-            
-            //waitpid(pid,NULL,WNOHANG); //si no hay background, espero al hijo a que termine, estoy en fg
         }
         else{
+            //imprimo pid del hijo ejecutandose en bg
+            printf("\nProcess [%d] en bg. Pid:%d\n\n",hijosbg,pid);
             hijosbg++;
-            printf("\nProcess en bg %d\n\n",pid); //imprimo pid del hijo ejecutandose en bg 
+              
             signal(SIGCHLD, handler);       //activo la signal para reportar la terminacion de ejecucion del hijo en bg
             //sleep(1);                       //sleep para tener la consola un poco mas ordenada por los print
-            printf("\n Soy padre, deberia irme al prompt");
         }
         return;
     }
@@ -359,8 +389,11 @@ void executePipedCommands(char** pathargs,char** pipedargs,int nropipes,char** s
     pid_t p1,p2;
 
     
-
-    if(pipe(pipefd) == -1){
+    /*  0 (stdin): Standard input
+        1 (stdout): Standard output
+        2 (stderr): Standard error
+        3 pipefd[2]    pipe()*/
+    if(pipe(pipefd) == -1){                 
         printf("\nError al crear pipe"); 
         return; 
     }
@@ -382,8 +415,16 @@ void executePipedCommands(char** pathargs,char** pipedargs,int nropipes,char** s
         dup2(pipefd[1],STDOUT_FILENO);  //duplico el stdout
         close(pipefd[1]);               //cierro el stdout en el fd
 
-        separador(pipedargs[0],commandaux,MAXCMD," ");
-       // printf("Soy el hijo1, strings pipedargs0: %s, commandaux0: %s, commandaux1: %s. Nro args: %d \n",pipedargs[0],commandaux[0],commandaux[1],numargs);
+
+    /*  La tabla de file descriptors queda asi:
+        0 (stdin): Standard input
+        1 (stdout): pipefd[1]
+        2 (stderr): Standard error  */
+
+        
+
+        separador(pipedargs[0],commandaux,MAXCMD," "); //separo por palabras el comando del pipe
+
         if (execvp(commandaux[0], commandaux) < 0) { 
             printf("\nCould not execute command 1.."); 
             exit(0); 
@@ -410,8 +451,12 @@ void executePipedCommands(char** pathargs,char** pipedargs,int nropipes,char** s
             dup2(pipefd[0], STDIN_FILENO);  //duplico el stdin
             close(pipefd[0]);               //cierro el stdin fd 
 
+    /*  La tabla de file descriptors queda asi:
+        0 (stdin): pipefd[0]
+        1 (stdout): Standard Output
+        2 (stderr): Standard error  */
+
             separador(pipedargs[1],commandaux,MAXCMD," ");
-            //printf("Soy el hijo2, strings pipedargs1: %s, commandaux0: %s, commandaux1: %s. Nro args: %d \n",pipedargs[1],commandaux[0],commandaux[1],numargs);
 
             if (execvp(commandaux[0], commandaux) < 0) { 
                 printf("\nCould not execute command 2.."); 
@@ -437,7 +482,7 @@ void handler(int sig)           //handler cuando un hijo muere
     if (pid<0){ //Ya habia sido limpiado por un wait(no background), no hago nada
         return;
     }
-    printf("\nPid %d Done. Code: %d\n", pid,status);    //el hijo estaba en ejecucion y termino, imprimo su pid 
+   // printf("Pid %d Done. Code: %d\n", pid,status);    //el hijo estaba en ejecucion y termino, imprimo su pid 
 }   
 
 void Zcleaner(){  

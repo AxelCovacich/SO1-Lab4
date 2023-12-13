@@ -28,14 +28,14 @@ void printDir()
     printf("\n%s@%s:~%s",user,hostname,cwd);
 }
 
-// function for parsing command words. return value: cant de palabras
+/* Function for parsing command words.Separa las palabras segun el delmitador y las guarda en el string parsed
+. return value: cant de palabras*/
 int separador(char* input, char** parsed, int LIMIT, char *delimitador) {
     int i;
-    //printf("separanding strlen:%ld \n", strlen(input));
+
     for (i = 0; i < LIMIT; i++) {
-        //printf("adentro del for\n");
+
         parsed[i] = strsep(&input, delimitador);
-       // printf("despeues de strsep: %s \n", parsed[i]);
 
         if (parsed[i] == NULL) {
             break;
@@ -46,9 +46,7 @@ int separador(char* input, char** parsed, int LIMIT, char *delimitador) {
         else {
             parsed[i][strcspn(parsed[i], "\n")] = 0;
         }
-        //printf("fin del for\n");
     }
-    //printf("i vale: %d\n", i);
     if (parsed[1] == NULL && strcmp(delimitador, "|") == 0) {
         return 0;
     }
@@ -57,16 +55,14 @@ int separador(char* input, char** parsed, int LIMIT, char *delimitador) {
 
 void redirectSTDIN(char* filename){
 
-    printf("voy a redidirigstdin con filename: %s\n",filename);
     int newin = open(filename,O_RDONLY,0777);
 
         if (newin == -1){
-
-            printf("\nError, could not redirect STDIN\n"); 
+ 
             return;
         }
 
-        original_stdin = dup(STDIN_FILENO);
+        original_stdin = dup(STDIN_FILENO);     //guardo el stdin original para restaurarlo despues
 
         if (dup2(newin,STDIN_FILENO) == -1){
             printf("\nError, could not duplcate STDIN\n"); 
@@ -77,13 +73,18 @@ void redirectSTDIN(char* filename){
             printf("\nCould not close file descriptor when redirecting STDIN\n");
             return;
         }
+        /*  La tabla de file descriptors queda asi:
+        0 (stdin): filename(newin)
+        1 (stdout): Standard output
+        2 (stderr): Standard error  
+        3 orginal_stdin
+        */
 
     return;
 }
 
 void redirectSTDOUT(char* filename){
 
-    printf("voy a redidirigstdout con filename: %s\n",filename);
 
     int newout = open(filename,(O_WRONLY | O_CREAT),0777);
 
@@ -104,11 +105,25 @@ void redirectSTDOUT(char* filename){
         printf("\nCould not close file descriptor when redirecting STDOUT\n");
         return;
     }
+     /*  La tabla de file descriptors queda asi:
+        0 (stdin): Standard input
+        1 (stdout): newout
+        2 (stderr): Standard error  
+        3 orginal_stdout
+        */
+
+        /*  La tabla de file descriptors queda asi si ya se redirigio el stdin:
+        0 (stdin): newin
+        1 (stdout): newout
+        2 (stderr): Standard error  
+        3 orginal_stdin
+        4 original_stdout
+        */
 
     return;
 }
 
-
+//funcion para restaurar la redireccion de stdin o stdout.
 void restaurarSTD(int stdfile){
     
     if(stdfile == STDIN_FILENO){
