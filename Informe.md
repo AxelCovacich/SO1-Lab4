@@ -17,7 +17,23 @@ Para evitar zombies en este ultimo caso, se utilizo la signal de sigchld, de mod
 
 Si al lanzar programas en background intentamos cerrar myshell por el comando quit, se implemento una funcion de salida que se encargue de esperar a estos hijos en background y no cerrar la shell hasta que estos hayan terminado y sido limpiados, para evitar dejar zombies en el sistema.
 
-Bugs & issues:
-Al comprobar el comando interno "cd" sin argumentos mediante la funcion strcmp, obtenia un segmentation fault. Esto se tuvo que resolver hardcodeando, preguntando por este caso en especifico y salvandolo colocando un string vacio " " luego del comando cd.
+Actualizacion TP6:
 
-Al lanzar un hijo en background, se hace un sleep(1) por el padre, para demorar la salida en pantalla del prompt y que no se solapen con salidas de los hijos ejecutandose en background, sin embargo si el hijo continua imprimiendo por pantalla probablemente se solapen con el prompt del padre, dejando un poco incomodo a la vista al prompt.
+Se implementaron las signals de  (SIGINT, SIGTSTP, SIGQUIT) para que sean ignoradas por el proceso main y que sean atendidas por los procesos hijos.
+
+
+
+Los pipes son creados mediante el sistema de llamadas pipe(). No tienen una representación física en el sistema de archivos y no tienen atributos de archivos como permisos, propietarios o ubicaciones en el sistema de archivos.
+
+Cuando se crea un pipe, se obtiene un par de descriptores de archivo: uno para lectura (pipefd[0]) y otro para escritura (pipefd[1]). Estos descriptores de archivo se utilizan para enviar datos desde el extremo de escritura del pipe al extremo de lectura del pipe.
+Se usa la funcion dup2 para duplicar y cerrar los extremos no utilizados de los file descriptors
+
+En esta implementacion solo se aceptan comandos de hasta 1 pipe (comando 1 | comando 2).
+
+Se implemento la redireccion del STDIN y STDOUT mediante las funciones dup y dup2. El comando echo funciona con esta implementacion.
+
+Bugs & issues:
+
+Se corrijieron la mayoria de errores de crasheo y manipulacion de strings. No se garantiza el correcto funcionamiento segun la entrada por teclado con ingresos erroneos o defectuosos.
+
+La funcionalidad de pipe solo funciona con dos comandos conectados (comando 1 | comando 2)
