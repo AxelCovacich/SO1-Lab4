@@ -32,3 +32,8 @@ En esta implementacion solo se aceptan comandos de hasta 1 pipe (comando 1 | com
 
 Se implemento la redireccion del STDIN y STDOUT mediante las funciones dup y dup2. El comando echo funciona con esta implementacion.
 
+Bugs & issues:
+
+Se corrijieron la mayoria de errores de crasheo y manipulacion de strings. No se garantiza el correcto funcionamiento segun la entrada por teclado con ingresos erroneos o defectuosos.
+
+La funcionalidad de pipe solo funciona con dos comandos conectados (comando 1 | comando 2)
